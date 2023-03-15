@@ -2,18 +2,25 @@
 
 uuid=0
 db_name=
+column_length=8
+max_line_size=39
 
 create_database() {
     table_name=$1
-    echo "Creating table with name ${table_name}..."
+    echo "Creating database with name ${table_name}..."
     touch "${table_name}"
     echo "$table_name" > ${table_name}
-    echo "*****************" >> ${table_name}
+    asteriks_line=""
+    for i in {1..39}; do
+        asteriks_line+="*"
+    done
+    echo "${asteriks_line}" >> ${table_name}
 }
 
 create_columns() {
+    echo "Inserting header line in table ${db_name}..."
     columns="$@"
-    echo "${columns}" >> ${db_name}
+    format_line "${columns}"
 }
 
 select_data() {
@@ -25,9 +32,9 @@ select_data() {
 }
 
 insert_data() {
-    echo "Inserting  new line in table ${db_name}..."
+    echo "Inserting new line in table ${db_name}..."
     new_line="$@"
-    echo "${new_line}" >> ${db_name}
+    format_line  "${new_line}"
 }
 
 delete_data() {
@@ -44,9 +51,30 @@ print_table() {
 }
 
 get_columns_for_table() {
-    columns=$(grep -A 1 '^\*' ${db_name}  | tr -d  '*' |  tr " " "\n")
+    columns=$(sed -n '3p' ${db_name} | grep "*"  | tr -d  '*' |  tr " " "\n")
     echo -e "Columns are:"
     echo ${columns}
+}
+
+format_line()  {
+    echo "Formating start"
+    new_line="*"
+
+    set -- junk $1
+    shift
+        for field; do
+            new_column="* ${field}"
+            new_column_length="${#new_column}"
+            ((new_column_length-=1))#asteriks are not counted
+            #add more spaces if needed
+            for ((i = $new_column_length;  i < $column_length;  i++)); do
+                new_column+=" "
+            done
+            new_line+=$new_column
+    done
+    new_line+="**"
+    echo "Formating end"
+    echo "${new_line}" >> ${db_name}
 }
 
 while true 
