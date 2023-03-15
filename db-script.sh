@@ -10,17 +10,23 @@ create_database() {
     echo "Creating database with name ${table_name}..."
     touch "${table_name}"
     echo "$table_name" > ${table_name}
-    asteriks_line=""
-    for i in {1..39}; do
-        asteriks_line+="*"
-    done
-    echo "${asteriks_line}" >> ${table_name}
 }
 
 create_columns() {
+    columns_number=$#
+    insert_asteriks_line "$columns_number"
     echo "Inserting header line in table ${db_name}..."
     columns="$@"
     format_line "${columns}"
+}
+
+insert_asteriks_line() {
+    columns_number=$1
+    asteriks_line="***"
+    for ((i =  0;  i < $columns_number;  i++)); do
+        asteriks_line+="*********"
+    done
+    echo "${asteriks_line}" >> ${table_name}
 }
 
 select_data() {
