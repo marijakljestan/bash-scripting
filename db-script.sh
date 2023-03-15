@@ -14,10 +14,14 @@ create_database() {
 
 create_columns() {
     columns_number=$#
-    insert_asteriks_line "$columns_number"
-    echo "Inserting header line in table ${db_name}..."
-    columns="$@"
-    format_line "${columns}"
+    if (($columns_number  > 4)); then
+        echo "Invalid input! Maximum number of columns is 4."
+    else
+        insert_asteriks_line "$columns_number"
+        columns="$@"
+        echo "Inserting header line in table ${db_name}..."
+        format_line "${columns}"
+    fi
 }
 
 insert_asteriks_line() {
@@ -71,7 +75,7 @@ format_line()  {
         for field; do
             new_column="* ${field}"
             new_column_length="${#new_column}"
-            ((new_column_length-=1))#asteriks are not counted
+            ((new_column_length-=1))    #asteriks on begginig of column are not counted
             #add more spaces if needed
             for ((i = $new_column_length;  i < $column_length;  i++)); do
                 new_column+=" "
