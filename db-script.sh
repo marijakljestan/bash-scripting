@@ -2,7 +2,7 @@
 
 #TODO autoincrement id
 uuid=0
-db_name=
+db_name="q"
 table_name=
 column_length=8
 column_length_with_asteriks=9
@@ -30,17 +30,17 @@ create_table() {
 
     echo "Enter table name:"
     read  table_name    
-    if [[ -f  "${db_name}/${table_name}" ]]; then
-        echo "Error! Table with name '${table_name}' already exists!"
+    if [[ -f  "$db_name/$table_name.txt" ]]; then
+        echo "Error! Table with name '$table_name' already exists!"
         return
     fi
-    touch "${db_name}/${table_name}"
+    touch "$db_name/$table_name.txt"
 
     echo "Enter column names:"
     read -a columns_input 
     columns_number=${#columns_input[@]}
-    if (($columns_number  > ${max_columns_number})); then
-        echo "Invalid input! Maximum number of columns is ${max_columns_number}."
+    if (($columns_number  > $max_columns_number)); then
+        echo "Invalid input! Maximum number of columns is $max_columns_number."
         return
     fi
 
@@ -50,52 +50,59 @@ create_table() {
 }
 
 insert_table_header() {
-    echo "$table_name" > ${db_name}/${table_name}
+    echo "$table_name" > "$db_name/$table_name.txt"
     columns_number=$1
     asteriks_line="***"
     for ((i =  0;  i < $((columns_number * column_length_with_asteriks));  i++)); do
         asteriks_line+="*"
     done
-    echo "${asteriks_line}" >> ${db_name}/${table_name}
+    echo "${asteriks_line}" >> "$db_name/$table_name.txt"
 }
 
 #TODO: select data by other columns
 select_data() {
     query_param=$1
     echo "Executing command - SELECT * FROM ${table_name} where id = ${search_param}..."
-    result=$(grep -n "^** ${query_param}" ${db_name}/${table_name}   | tr -d "**")
+    result=$(grep "^** ${query_param}" "$db_name/$table_name.txt" | tr -d "**")
     echo  "Search result: "
     echo  "${result}"
 }
 
 insert_data() {
     new_line="$@"
-    table_columns_number=$(get_table_columns | xargs | wc -w )
+    table_columns_number=$(print_table_columns | xargs | wc -w )
     if (($# != $table_columns_number)); then
         echo "Invalid input! You have to input ${table_columns_number} values"
-    else 
-        echo "Inserting new line in table ${table_name}..."
-        format_and_insert_line "${new_line}"
-    fi
+        return
+    fi 
+    
+    echo "Inserting new line in table ${table_name}..."
+    format_and_insert_line "${new_line}"
 }
 
 delete_data() {
     #TODO: Use AWK instead
     query_param=$1
     echo "Deleting row where id = ${query_param}..."
-    grep -v "^** ${query_param}" ${db_name}/${table_name} > data.txt
-    mv data.txt ${db_name}/${table_name}
+    grep -v "^** ${query_param}" "$db_name/$table_name.txt" > data.txt
+    mv data.txt "$db_name/$table_name.txt"
+}
+
+function delete_id(){
+    echo "ID?: "
+    read id
+    awk -v id="$id" '$2 != id' "$db_name/$table_name.txt" \
+    | sponge "$db_name/$table_name.txt"
 }
 
 print_table() {
-    echo -e "\n"
-    cat ${db_name}/${table_name}
-    echo -e "\n"
+    content=$(cat "$db_name/$table_name.txt")
+    echo -e "\n${content}\n"
 }
 
-get_table_columns() {
-    columns=$(sed -n '3p' ${db_name}/${table_name} | grep "*"  | tr -d  '*' |  tr " " "\n")
-    echo ${columns}
+print_table_columns() {
+    columns=$(sed -n '3p' $db_name/$table_name.txt | tr -d  '*' | xargs)
+    echo "${columns}"
 }
 
 format_and_insert_line()  {
@@ -120,7 +127,7 @@ format_and_insert_line()  {
             fi    
     done
     new_line+="**"
-    echo "${new_line}" >> ${db_name}/${table_name}
+    echo "${new_line}" >> "${db_name}/${table_name}.txt"
 }
 
 while true 
@@ -151,8 +158,8 @@ do
         3) #insert data
             echo "Enter table name:"
             read  table_name
-            echo -e "Columns are:"
-            get_table_columns "$table_name"
+            echo "Columns are:"
+            print_table_columns "$table_name"
             echo "Insert values for columns above:" 
             read -a data
             insert_data "${data[@]}"
