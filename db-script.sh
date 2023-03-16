@@ -5,7 +5,8 @@ uuid=0
 db_name=
 table_name=
 column_length=8
-column_length_with_asteriks=9 
+column_length_with_asteriks=9
+max_columns_number=4 
 max_line_size=39
 
 create_database() {
@@ -13,7 +14,7 @@ create_database() {
     read db_name
 
     if [ -d "${db_name}" ]; then 
-        echo "Error! Database with name '${db_name} already exists."; 
+        echo "Error! Database with name '${db_name}' already exists."; 
         return
     fi
 
@@ -25,28 +26,31 @@ create_table() {
     if [[ -z "$db_name" ]]; then
         echo "Error! Before creating table, you have to create database."
         return
-    fi     
+    fi
 
+    echo "Enter table name:"
+    read  table_name    
     if [[ -f  "${db_name}/${table_name}" ]]; then
         echo "Error! Table with name '${table_name}' already exists!"
         return
     fi
     touch "${db_name}/${table_name}"
 
-    columns_number=$#
-    if (($columns_number  > 4)); then
-        echo "Invalid input! Maximum number of columns is 4."
+    echo "Enter column names:"
+    read -a columns_input 
+    columns_number=${#columns_input[@]}
+    if (($columns_number  > ${max_columns_number})); then
+        echo "Invalid input! Maximum number of columns is ${max_columns_number}."
         return
     fi
 
-    echo "$table_name" > ${db_name}/${table_name}
-    insert_asteriks_line "$columns_number"
-    columns="$@"
-    echo "Inserting header line in table ${table_name}..." 
+    insert_table_header "$columns_number"
+    columns=${columns_input[@]}
     format_and_insert_line "${columns}"    
 }
 
-insert_asteriks_line() {
+insert_table_header() {
+    echo "$table_name" > ${db_name}/${table_name}
     columns_number=$1
     asteriks_line="***"
     for ((i =  0;  i < $((columns_number * column_length_with_asteriks));  i++)); do
@@ -106,6 +110,7 @@ format_and_insert_line()  {
             ((new_column_length-=1))    #asteriks on begginig of column are not counted
             if (( $new_column_length > $column_length)); then
                 echo "Invalid  input! Maximum size of column is ${column_length}"
+                return
             else    
                 #add more spaces if needed
                 for ((i = $new_column_length;  i < $column_length;  i++)); do
@@ -130,15 +135,11 @@ do
     echo -e  "\n"
     read choice
     case "$choice" in 
-        0)  #create database with single table
+        0) 
             create_database
             ;;
-        1)  #create table with provided arguments as columns
-            echo "Enter table name:"
-            read  table_name
-            echo "Enter column names:"
-            read -a columns
-            create_table "${columns[@]}"
+        1)  
+            create_table
             ;;
         2) #select data from table
             echo  "Enter name of table you want to search:"
