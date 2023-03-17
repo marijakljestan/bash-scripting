@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#TODO autoincrement id
-uuid=0
 db_name="q"
-table_name=
+table_name="q"
 column_length=8
 column_length_with_asteriks=9
 max_columns_number=4 
@@ -59,16 +57,23 @@ insert_table_header() {
     echo "${asteriks_line}" >> "$db_name/$table_name.txt"
 }
 
-#TODO: select data by other columns
-#Find asteriks number:
-#sed -n '3p' "q/q.txt" | awk -F 'age' '{print gsub(/\*/, "", $1)}'
-#grep -A1 "23" q/q.txt | awk -F '23' '{print gsub(/\*/, "", $1)}'
 select_data() {
     query_param=$1
     echo "Executing command - SELECT * FROM ${table_name} where id = ${search_param}..."
     result=$(grep "^** ${query_param}" "$db_name/$table_name.txt" | tr -d "**")
     echo  "Search result: "
     echo  "${result}"
+}
+
+search_data() {
+    echo "Enter column name:"
+    read column
+    column_index=$(awk -v column="$column" 'NR==3{for(i=1;i<=NF;i++){if($i==column){print i}}}' "$db_name/$table_name.txt")
+
+    echo "Enter value:"
+    read value
+
+    awk -v column="$column_index" -v value="$value" '$column==value' "$db_name/$table_name.txt"
 }
 
 insert_data() {
@@ -128,28 +133,15 @@ format_and_insert_line()  {
     echo "${new_line}" >> "${db_name}/${table_name}.txt"
 }
 
-search() {
-    line_before=$(sed -n '3p' "q/q.txt" | awk -F 'age' '{print gsub(/\*/, "", $1)}')
-    line_with="23"
-    count=$(grep -A1 "$line_with" q/q.txt | awk -F "$line_with" '{print gsub(/\*/, "", $1)}')
-
-    echo "here"
-
-    if [[ $(grep -A1 23 q/q.txt | awk -F 23 '{print gsub(/\*/, "", $1)}') -eq "$line_before" ]]; then
-        grep -A1 23 q/q.txt | tail -n1
-    fi
-
-}
-
 while true 
 do
     echo -e "\n\n Choose an option:\n"
     echo "0. Create database"
     echo "1. Create a table"
-    echo "2. Select data from table"
-    echo "3. Insert data in table"
+    echo "2. Search data"
+    echo "3. Insert data"
     echo "4. Delete data"
-    echo "5. Print  table"
+    echo "5. Print table"
     echo -e  "\n"
     read choice
     case "$choice" in 
@@ -159,12 +151,10 @@ do
         1)  
             create_table
             ;;
-        2) #select data from table
+        2) 
             echo  "Enter name of table you want to search:"
             read table_name
-            echo  "Enter id of data you are searching for:"
-            read id
-            select_data "$id"
+            search_data
             ;;
         3) #insert data
             echo "Enter table name:"
@@ -175,14 +165,18 @@ do
             read -a data
             insert_data "${data[@]}"
             ;;
-        4) #delete data
+        4) 
             delete_data_by_id
             ;;
         5) 
             print_table
             ;;
         6)
-            search
+            echo  "Enter name of table you want to search:"
+            read table_name
+            echo  "Enter id of data you are searching for:"
+            read id
+            select_data "$id"
             ;;        
         *) 
             echo "Invalid choice!"
