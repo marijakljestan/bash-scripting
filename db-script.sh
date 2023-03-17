@@ -15,7 +15,7 @@ create_database() {
 
     if [ -d "${db_name}" ]; then 
         echo "Error! Database with name '${db_name}' already exists."; 
-        return
+        return 1
     fi
 
     echo "Creating database with name ${db_name}..."
@@ -25,14 +25,14 @@ create_database() {
 create_table() {
     if [[ -z "$db_name" ]]; then
         echo "Error! Before creating table, you have to create database."
-        return
+        return 1
     fi
 
     echo "Enter table name:"
     read  table_name    
     if [[ -f  "$db_name/$table_name.txt" ]]; then
         echo "Error! Table with name '$table_name' already exists!"
-        return
+        return 1
     fi
     touch "$db_name/$table_name.txt"
 
@@ -41,7 +41,7 @@ create_table() {
     columns_number=${#columns_input[@]}
     if (($columns_number  > $max_columns_number)); then
         echo "Invalid input! Maximum number of columns is $max_columns_number."
-        return
+        return 1
     fi
 
     insert_table_header "$columns_number"
@@ -60,6 +60,9 @@ insert_table_header() {
 }
 
 #TODO: select data by other columns
+#Find asteriks number:
+#sed -n '3p' "q/q.txt" | awk -F 'age' '{print gsub(/\*/, "", $1)}'
+#grep -A1 "23" q/q.txt | awk -F '23' '{print gsub(/\*/, "", $1)}'
 select_data() {
     query_param=$1
     echo "Executing command - SELECT * FROM ${table_name} where id = ${search_param}..."
@@ -73,35 +76,30 @@ insert_data() {
     table_columns_number=$(print_table_columns | xargs | wc -w )
     if (($# != $table_columns_number)); then
         echo "Invalid input! You have to input ${table_columns_number} values"
-        return
+        return 1
     fi 
     
-    echo "Inserting new line in table ${table_name}..."
     format_and_insert_line "${new_line}"
 }
 
-delete_data() {
-    #TODO: Use AWK instead
-    query_param=$1
-    echo "Deleting row where id = ${query_param}..."
-    grep -v "^** ${query_param}" "$db_name/$table_name.txt" > data.txt
-    mv data.txt "$db_name/$table_name.txt"
-}
-
-function delete_id(){
-    echo "ID?: "
+delete_data_by_id() {
+    echo  "Enter table name:"
+    read table_name
+    echo "Enter id of data you want to delete:"
     read id
-    awk -v id="$id" '$2 != id' "$db_name/$table_name.txt" \
-    | sponge "$db_name/$table_name.txt"
+
+    awk -v id="$id" '$2 != id' "$db_name/$table_name.txt" | sponge "$db_name/$table_name.txt"
 }
 
 print_table() {
+    echo  "Enter table name:"
+    read table_name
     content=$(cat "$db_name/$table_name.txt")
     echo -e "\n${content}\n"
 }
 
 print_table_columns() {
-    columns=$(sed -n '3p' $db_name/$table_name.txt | tr -d  '*' | xargs)
+    columns=$(sed -n '3p' "$db_name/$table_name.txt" | tr -d  '*' | xargs)
     echo "${columns}"
 }
 
@@ -117,7 +115,7 @@ format_and_insert_line()  {
             ((new_column_length-=1))    #asteriks on begginig of column are not counted
             if (( $new_column_length > $column_length)); then
                 echo "Invalid  input! Maximum size of column is ${column_length}"
-                return
+                return 1
             else    
                 #add more spaces if needed
                 for ((i = $new_column_length;  i < $column_length;  i++)); do
@@ -128,6 +126,19 @@ format_and_insert_line()  {
     done
     new_line+="**"
     echo "${new_line}" >> "${db_name}/${table_name}.txt"
+}
+
+search() {
+    line_before=$(sed -n '3p' "q/q.txt" | awk -F 'age' '{print gsub(/\*/, "", $1)}')
+    line_with="23"
+    count=$(grep -A1 "$line_with" q/q.txt | awk -F "$line_with" '{print gsub(/\*/, "", $1)}')
+
+    echo "here"
+
+    if [[ $(grep -A1 23 q/q.txt | awk -F 23 '{print gsub(/\*/, "", $1)}') -eq "$line_before" ]]; then
+        grep -A1 23 q/q.txt | tail -n1
+    fi
+
 }
 
 while true 
@@ -165,17 +176,14 @@ do
             insert_data "${data[@]}"
             ;;
         4) #delete data
-            echo  "Enter table name:"
-            read table_name
-            echo "Enter id of data you want to delete:"
-            read id
-            delete_data "$id"
+            delete_data_by_id
             ;;
-        5) #print table
-            echo  "Enter table name:"
-            read table_name
-            print_table "$table_name"
-            ;;    
+        5) 
+            print_table
+            ;;
+        6)
+            search
+            ;;        
         *) 
             echo "Invalid choice!"
             ;;
