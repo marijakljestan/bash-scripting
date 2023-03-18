@@ -1,7 +1,7 @@
 #!/bin/bash
 
-db_name="q"
-table_name="q"
+db_name=
+table_name=
 column_length=8
 column_length_with_asteriks=9
 max_columns_number=4 
@@ -57,17 +57,15 @@ insert_table_header() {
     echo "${asteriks_line}" >> "$db_name/$table_name.txt"
 }
 
-select_data() {
-    query_param=$1
-    echo "Executing command - SELECT * FROM ${table_name} where id = ${search_param}..."
-    result=$(grep "^** ${query_param}" "$db_name/$table_name.txt" | tr -d "**")
-    echo  "Search result: "
-    echo  "${result}"
-}
-
 search_data() {
+    echo -e "Search by one of this columns:\n $(print_table_columns)"
     echo "Enter column name:"
     read column
+
+    if [[ $(sed -n '3p' "$db_name/$table_name.txt") != *"$column"* ]]; then
+        echo "Invalid input! "$column does not exists in table "$table_name"
+        return 1
+    fi
     column_index=$(awk -v column="$column" 'NR==3{for(i=1;i<=NF;i++){if($i==column){print i}}}' "$db_name/$table_name.txt")
 
     echo "Enter value:"
@@ -88,8 +86,6 @@ insert_data() {
 }
 
 delete_data_by_id() {
-    echo  "Enter table name:"
-    read table_name
     echo "Enter id of data you want to delete:"
     read id
 
@@ -97,8 +93,6 @@ delete_data_by_id() {
 }
 
 print_table() {
-    echo  "Enter table name:"
-    read table_name
     content=$(cat "$db_name/$table_name.txt")
     echo -e "\n${content}\n"
 }
@@ -166,18 +160,15 @@ do
             insert_data "${data[@]}"
             ;;
         4) 
+            echo "Enter table name:"
+            read table_name
             delete_data_by_id
             ;;
         5) 
-            print_table
-            ;;
-        6)
-            echo  "Enter name of table you want to search:"
+            echo "Enter table name:"
             read table_name
-            echo  "Enter id of data you are searching for:"
-            read id
-            select_data "$id"
-            ;;        
+            print_table
+            ;;       
         *) 
             echo "Invalid choice!"
             ;;
